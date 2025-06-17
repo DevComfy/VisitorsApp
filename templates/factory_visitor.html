@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Factory Visitor Registration</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* Base font-family from Inter */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* Tailwind gray-100 */
+        }
+        pre {
+            white-space: pre-wrap; /* Ensures text wraps */
+        }
+        /* Custom styling for file input button to match design */
+        input[type="file"]::file-selector-button {
+            background-color: theme('colors.blue.50'); /* Light blue background */
+            color: theme('colors.blue.700'); /* Darker blue text */
+            padding: theme('spacing.2') theme('spacing.4'); /* py-2 px-4 */
+            border-radius: theme('borderRadius.full'); /* rounded-full */
+            border: 0; /* no border */
+            font-size: theme('fontSize.sm'); /* text-sm */
+            font-weight: theme('fontWeight.semibold'); /* font-semibold */
+            margin-right: theme('spacing.4'); /* mr-4 */
+            transition: background-color 150ms ease-in-out; /* hover transition */
+            cursor: pointer;
+        }
+
+        input[type="file"]::file-selector-button:hover {
+            background-color: theme('colors.blue.100'); /* Lighter blue on hover */
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4 bg-gray-50 text-gray-800">
+    <div id="nda-section" class="p-7 bg-white rounded-xl shadow-xl max-w-2xl mx-auto my-8 border border-gray-100">
+        <h2 class="text-3xl font-bold mb-5 text-gray-900">Factory Visitor NDA</h2>
+        <div class="prose max-w-none text-gray-700 leading-relaxed mb-7 overflow-y-auto h-72 p-4 border border-gray-200 rounded-lg bg-gray-50">
+            <pre class="whitespace-pre-wrap font-sans text-sm">{{ nda_content }}</pre>
+        </div>
+        <label class="flex items-center space-x-3 text-lg font-medium text-gray-900">
+            <input type="checkbox" id="ndaAccepted" class="form-checkbox h-5 w-5 text-blue-600 rounded-md">
+            <span>I have read, understood, and agree to the NDA.</span>
+        </label>
+        <button id="acceptNdaButton" class="mt-7 w-full py-3 px-6 rounded-lg text-white font-semibold transition duration-200 ease-in-out bg-gray-400 cursor-not-allowed transform hover:scale-105" disabled>
+            Accept NDA
+        </button>
+    </div>
+
+    <div id="docs-acknowledgment-section" class="hidden p-7 bg-white rounded-xl shadow-xl max-w-2xl mx-auto my-8 border border-gray-100">
+        <h2 class="text-3xl font-bold mb-5 text-gray-900">Contractor Document Pre-Approval</h2>
+        <p class="text-gray-700 leading-relaxed mb-7">
+            If you are a contractor whose documents were pre-approved by our H&S Officer, please enter your Pre-Approval ID below. Otherwise, please confirm manual document submission.
+        </p>
+
+        <!-- New Pre-Approval ID section -->
+        <div class="mb-7 p-5 border border-blue-200 bg-blue-50 rounded-lg shadow-sm">
+            <label for="preApprovalId" class="block text-sm font-medium text-blue-800 mb-1">Your 5-Digit Pre-Approval ID (from H&S Email)</label>
+            <input type="text" id="preApprovalId" name="preApprovalId" placeholder="e.g., 12345" class="block w-full px-4 py-2 border border-blue-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-base" maxlength="5" pattern="\d{5}" title="Please enter a 5-digit number">
+            <button type="button" id="lookupPreApproval" class="mt-4 w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md transition duration-200 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75">
+                Lookup Pre-Approval
+            </button>
+            <p id="preApprovalStatusMessage" class="text-sm mt-3 text-center font-medium"></p>
+        </div>
+
+        <p class="text-gray-700 leading-relaxed mb-7 border-t border-gray-200 pt-6 mt-6">
+            OR, if you have not received a Pre-Approval ID, please ensure you have submitted all required documents to Samela, the Health and Safety Officer, including:
+        </p>
+        <ul class="list-disc list-inside text-gray-700 mb-7 space-y-2">
+            <li>Letter of Good Standing (COID)</li>
+            <li>Risk Assessments</li>
+            <li>Worker Certificates</li>
+            <li>Material Safety Data Sheets</li>
+            <li>Personal Protective Equipment Records</li>
+            <li>Medical Certificates</li>
+            <li>Standard Operating Procedures</li>
+            <li>ID Copies</li>
+            <li>Legal Appointments</li>
+        </ul>
+        <label class="flex items-center space-x-3 text-lg font-medium text-gray-900">
+            <input type="checkbox" id="documentAcknowledgment" class="form-checkbox h-5 w-5 text-blue-600 rounded-md">
+            <span>I confirm I have provided all required documents to Samela prior to this visit.</span>
+        </label>
+        <button id="acknowledgeDocsButton" class="mt-7 w-full py-3 px-6 rounded-lg text-white font-semibold transition duration-200 ease-in-out bg-gray-400 cursor-not-allowed transform hover:scale-105" disabled>
+            Acknowledge & Proceed
+        </button>
+        <div id="docMessage" class="mt-4 text-red-600 text-center font-medium hidden"></div>
+    </div>
+
+    <div id="registration-form-section" class="hidden p-7 bg-white rounded-xl shadow-xl max-w-2xl mx-auto my-8 border border-gray-100">
+        <h2 class="text-3xl font-bold mb-5 text-gray-900">Factory Visitor Registration</h2>
+        <p class="text-gray-600 mb-7">Please complete all required information for factory access</p>
+
+        <div id="formMessage" class="p-4 mb-6 rounded-lg text-center font-medium shadow-md hidden"></div>
+
+        <form id="factoryRegistrationForm" action="/submit_factory_visit" method="POST" enctype="multipart/form-data" class="space-y-5">
+            <!-- Hidden input to confirm document acknowledgment, set by JS -->
+            <input type="hidden" id="hiddenDocAcknowledgment" name="documentAcknowledgmentConfirmed" value="false">
+            <!-- Hidden input to store the pre-approval ID if used -->
+            <input type="hidden" id="usedPreApprovalId" name="preApprovalId" value="">
+
+            <div>
+                <label for="firstName" class="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+                <input type="text" id="firstName" name="firstName" placeholder="Enter your first name" class="block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-base" required>
+            </div>
+            <div>
+                <label for="lastName" class="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                <input type="text" id="lastName" name="lastName" placeholder="Enter your last name" class="block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-base" required>
+            </div>
+            <div>
+                <label for="company" class="block text-sm font-medium text-gray-700 mb-1">Company</label>
+                <input type="text" id="company" name="company" placeholder="Enter your company name" class="block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-base" required>
+            </div>
+            <div>
+                <label for="reasonForVisit" class="block text-sm font-medium text-gray-700 mb-1">Reason for Visit</label>
+                <textarea id="reasonForVisit" name="reasonForVisit" placeholder="Please describe the purpose of your visit" rows="3" class="block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-base" required></textarea>
+            </div>
+            <div>
+                <label for="personVisiting" class="block text-sm font-medium text-gray-700 mb-1">Person Visiting</label>
+                <input type="text" id="personVisiting" name="personVisiting" placeholder="Who are you visiting today?" class="block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-base" required>
+            </div>
+            <div>
+                <label for="emailAddress" class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                <input type="email" id="emailAddress" name="emailAddress" placeholder="Enter your email address" class="block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-base" required>
+            </div>
+
+            <div class="flex flex-col items-center py-4 border-t border-gray-200">
+                <label for="selfiePhoto" class="block text-lg font-bold text-gray-900 mb-3">Take a Selfie Photo</label>
+                <div id="selfiePhotoPreviewContainer" class="w-48 h-48 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center cursor-pointer overflow-hidden mb-4 bg-gray-50 hover:bg-gray-100 transition duration-150 ease-in-out">
+                    <span class="text-gray-500 text-center text-sm">Tap to take photo</span>
+                </div>
+                <input type="file" id="selfiePhoto" name="selfiePhoto" accept="image/*" capture="camera" class="hidden" required>
+                <p id="selfieError" class="text-red-500 text-sm mt-1 hidden font-medium">Selfie photo is required.</p>
+            </div>
+
+            <button type="submit" class="w-full py-3 px-6 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md transition duration-200 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75">
+                Register Factory Visit
+            </button>
+        </form>
+    </div>
+
+    <div id="loaderOverlay" class="fixed inset-0 bg-white bg-opacity-80 flex items-center justify-center z-50 hidden">
+        <div class="flex flex-col items-center">
+            <svg class="animate-spin h-12 w-12 text-blue-600 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+            </svg>
+            <p class="text-blue-700 font-medium text-lg">Registering... Please wait</p>
+        </div>
+    </div>
+
+    <script>
+        const ndaAcceptedCheckbox = document.getElementById('ndaAccepted');
+        const acceptNdaButton = document.getElementById('acceptNdaButton');
+        const ndaSection = document.getElementById('nda-section');
+        const docsAcknowledgmentSection = document.getElementById('docs-acknowledgment-section');
+        const documentAcknowledgmentCheckbox = document.getElementById('documentAcknowledgment');
+        const acknowledgeDocsButton = document.getElementById('acknowledgeDocsButton');
+        const registrationFormSection = document.getElementById('registration-form-section');
+        const factoryRegistrationForm = document.getElementById('factoryRegistrationForm');
+        const selfiePhotoInput = document.getElementById('selfiePhoto');
+        const selfiePhotoPreviewContainer = document.getElementById('selfiePhotoPreviewContainer');
+        const selfieError = document.getElementById('selfieError');
+        const formMessage = document.getElementById('formMessage');
+        const docMessage = document.getElementById('docMessage');
+        const hiddenDocAcknowledgment = document.getElementById('hiddenDocAcknowledgment');
+        const usedPreApprovalIdInput = document.getElementById('usedPreApprovalId');
+        const loaderOverlay = document.getElementById('loaderOverlay');
+
+        // New elements for pre-approval lookup
+        const preApprovalIdInput = document.getElementById('preApprovalId');
+        const lookupPreApprovalButton = document.getElementById('lookupPreApproval');
+        const preApprovalStatusMessage = document.getElementById('preApprovalStatusMessage');
+
+        // Form fields to auto-populate
+        const firstNameInput = document.getElementById('firstName');
+        const lastNameInput = document.getElementById('lastName');
+        const companyInput = document.getElementById('company');
+        const reasonForVisitInput = document.getElementById('reasonForVisit');
+        const personVisitingInput = document.getElementById('personVisiting');
+        const emailAddressInput = document.getElementById('emailAddress');
+
+
+        // --- NDA Logic ---
+        ndaAcceptedCheckbox.addEventListener('change', () => {
+            acceptNdaButton.disabled = !ndaAcceptedCheckbox.checked;
+            if (ndaAcceptedCheckbox.checked) {
+                acceptNdaButton.classList.remove('bg-gray-400', 'cursor-not-allowed');
+                acceptNdaButton.classList.add('bg-blue-600', 'hover:bg-blue-700');
+            } else {
+                acceptNdaButton.classList.add('bg-gray-400', 'cursor-not-allowed');
+                acceptNdaButton.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+            }
+        });
+
+        acceptNdaButton.addEventListener('click', () => {
+            if (ndaAcceptedCheckbox.checked) {
+                ndaSection.classList.add('hidden');
+                docsAcknowledgmentSection.classList.remove('hidden');
+            }
+        });
+
+        // --- Document Acknowledgment Logic (Modified for Pre-Approval) ---
+        // Manual acknowledgment checkbox only active if NO pre-approval ID is used
+        documentAcknowledgmentCheckbox.addEventListener('change', () => {
+            if (preApprovalIdInput.value.trim() === '') { // Only enable if no pre-approval ID is entered
+                acknowledgeDocsButton.disabled = !documentAcknowledgmentCheckbox.checked;
+                if (documentAcknowledgmentCheckbox.checked) {
+                    acknowledgeDocsButton.classList.remove('bg-gray-400', 'cursor-not-allowed');
+                    acknowledgeDocsButton.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                    docMessage.classList.add('hidden');
+                } else {
+                    acknowledgeDocsButton.classList.add('bg-gray-400', 'cursor-not-allowed');
+                    acknowledgeDocsButton.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                }
+            } else {
+                // If pre-approval ID is entered, manual checkbox should be disabled/ignored
+                documentAcknowledgmentCheckbox.checked = false;
+                acknowledgeDocsButton.disabled = true;
+            }
+        });
+
+        // Manual Acknowledge & Proceed button click
+        acknowledgeDocsButton.addEventListener('click', () => {
+            if (documentAcknowledgmentCheckbox.checked) {
+                docsAcknowledgmentSection.classList.add('hidden');
+                registrationFormSection.classList.remove('hidden');
+                hiddenDocAcknowledgment.value = 'true'; // Manual acknowledgment confirmed
+                usedPreApprovalIdInput.value = ''; // Ensure no pre-approval ID is sent if manually acknowledged
+            } else {
+                docMessage.textContent = 'Please acknowledge document submission to proceed.';
+                docMessage.classList.remove('hidden');
+                hiddenDocAcknowledgment.value = 'false';
+            }
+        });
+
+        // --- NEW: Pre-Approval Lookup Logic ---
+        lookupPreApprovalButton.addEventListener('click', async () => {
+            const preApprovalCode = preApprovalIdInput.value.trim();
+
+            // Client-side validation for 5-digit numeric code
+            if (!/^\d{5}$/.test(preApprovalCode)) {
+                preApprovalStatusMessage.textContent = 'Please enter a valid 5-digit Pre-Approval ID.';
+                preApprovalStatusMessage.className = 'text-red-500 text-sm mt-3';
+                preApprovalIdInput.classList.add('border-red-500'); // Highlight input
+                return;
+            } else {
+                preApprovalIdInput.classList.remove('border-red-500'); // Remove highlight if valid
+            }
+
+            preApprovalStatusMessage.textContent = 'Looking up...';
+            preApprovalStatusMessage.className = 'text-gray-600 text-sm mt-3';
+            lookupPreApprovalButton.disabled = true;
+            loaderOverlay.classList.remove('hidden'); // Show loader during lookup
+
+            try {
+                const response = await fetch(`/api/public/pre-approvals/${preApprovalCode}`);
+                const result = await response.json();
+
+                if (result.success && result.status === 'Approved') {
+                    preApprovalStatusMessage.textContent = 'Documents Pre-Approved by H&S! Filling details...';
+                    preApprovalStatusMessage.className = 'text-green-600 text-sm mt-3';
+
+                    // Auto-populate form fields
+                    const contactNameParts = result.details.contactName.split(' ');
+                    firstNameInput.value = contactNameParts[0] || '';
+                    lastNameInput.value = contactNameParts.slice(1).join(' ') || '';
+
+                    companyInput.value = result.details.companyName || '';
+                    reasonForVisitInput.value = result.details.reasonForVisit || '';
+                    emailAddressInput.value = result.details.emailAddress || '';
+
+                    // Disable manual document acknowledgment and set hidden field
+                    documentAcknowledgmentCheckbox.checked = true;
+                    documentAcknowledgmentCheckbox.disabled = true;
+                    acknowledgeDocsButton.disabled = true;
+                    acknowledgeDocsButton.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                    acknowledgeDocsButton.classList.add('bg-gray-400', 'cursor-not-allowed');
+
+                    hiddenDocAcknowledgment.value = 'true'; // Mark as acknowledged by pre-approval
+                    usedPreApprovalIdInput.value = preApprovalCode; // Store the ID for form submission
+
+                    // Automatically move to registration form after successful lookup
+                    setTimeout(() => {
+                        docsAcknowledgmentSection.classList.add('hidden');
+                        registrationFormSection.classList.remove('hidden');
+                    }, 500); // Short delay for user to see message
+                } else if (result.success && result.status === 'Pending Review') {
+                    preApprovalStatusMessage.textContent = 'Documents are still pending review by H&S. Please wait for an approval email.';
+                    preApprovalStatusMessage.className = 'text-yellow-600 text-sm mt-3';
+                    hiddenDocAcknowledgment.value = 'false';
+                    usedPreApprovalIdInput.value = '';
+                } else if (result.success && result.status === 'Declined') {
+                    preApprovalStatusMessage.textContent = `Documents were declined. Reason: ${result.details.approvalDeclineReason || 'Please check your email for details.'}`;
+                    preApprovalStatusMessage.className = 'text-red-600 text-sm mt-3';
+                    hiddenDocAcknowledgment.value = 'false';
+                    usedPreApprovalIdInput.value = '';
+                } else {
+                    preApprovalStatusMessage.textContent = result.message || 'Invalid Pre-Approval ID or not found.';
+                    preApprovalStatusMessage.className = 'text-red-500 text-sm mt-3';
+                    hiddenDocAcknowledgment.value = 'false';
+                    usedPreApprovalIdInput.value = '';
+                }
+            } catch (error) {
+                console.error('Pre-approval lookup error:', error);
+                preApprovalStatusMessage.textContent = 'Error looking up ID. Please try again or contact reception.';
+                preApprovalStatusMessage.className = 'text-red-500 text-sm mt-3';
+                hiddenDocAcknowledgment.value = 'false';
+                usedPreApprovalIdInput.value = '';
+            } finally {
+                lookupPreApprovalButton.disabled = false;
+                loaderOverlay.classList.add('hidden'); // Hide loader
+            }
+        });
+
+
+        // --- Selfie Photo Preview Logic (existing) ---
+        function setupPhotoPreview(inputElement, previewContainer, errorElement) {
+            inputElement.addEventListener('change', (event) => {
+                if (event.target.files && event.target.files[0]) {
+                    const file = event.target.files[0];
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        previewContainer.innerHTML = `<img src="${e.target.result}" alt="Selfie Preview" class="w-full h-full object-cover rounded-xl">`;
+                        errorElement.classList.add('hidden'); // Hide error if photo is selected
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    previewContainer.innerHTML = `<span class="text-gray-500 text-center text-sm">Tap to take photo</span>`;
+                }
+            });
+
+            previewContainer.addEventListener('click', () => {
+                selfiePhotoInput.click(); // Trigger file input click
+            });
+        }
+
+        setupPhotoPreview(selfiePhotoInput, selfiePhotoPreviewContainer, selfieError);
+
+
+        // --- Modified Form Submission Logic ---
+        factoryRegistrationForm.addEventListener('submit', async (event) => {
+            event.preventDefault(); // Prevent default form submission
+
+            formMessage.classList.add('hidden'); // Hide previous messages
+            selfieError.classList.add('hidden'); // Hide previous selfie error
+
+            // Client-side validation for photo
+            if (!selfiePhotoInput.files || selfiePhotoInput.files.length === 0) {
+                selfieError.classList.remove('hidden');
+                formMessage.textContent = 'Please provide a selfie photo.';
+                formMessage.classList.remove('bg-green-100', 'text-green-700');
+                formMessage.classList.add('bg-red-100', 'text-red-700', 'block');
+                return;
+            }
+
+            // Document Acknowledgment/Pre-Approval Check
+            // hiddenDocAcknowledgment is set to 'true' either by manual checkbox or pre-approval lookup
+            if (hiddenDocAcknowledgment.value !== 'true') {
+                formMessage.textContent = 'Please acknowledge document submission OR enter a valid Pre-Approval ID.';
+                formMessage.classList.remove('bg-green-100', 'text-green-700');
+                formMessage.classList.add('bg-red-100', 'text-red-700', 'block');
+                return;
+            }
+
+            loaderOverlay.classList.remove('hidden'); // Show loader
+            const formData = new FormData(factoryRegistrationForm);
+
+            try {
+                const response = await fetch('/submit_factory_visit', {
+                    method: 'POST',
+                    body: formData // FormData will handle multipart/form-data
+                });
+
+                const result = await response.json();
+                loaderOverlay.classList.add('hidden'); // Hide loader
+
+                if (result.success) {
+                    formMessage.textContent = 'Registration successful! Redirecting...';
+                    formMessage.classList.remove('bg-red-100', 'text-red-700');
+                    formMessage.classList.add('bg-green-100', 'text-green-700', 'block');
+                    setTimeout(() => {
+                        window.location.href = result.redirect_url;
+                    }, 1500); // Redirect after 1.5 seconds
+                } else {
+                    formMessage.textContent = `Error: ${result.message}`;
+                    formMessage.classList.remove('bg-green-100', 'text-green-700');
+                    formMessage.classList.add('bg-red-100', 'text-red-700', 'block');
+                }
+            } catch (error) {
+                console.error('Network error during submission:', error);
+                formMessage.textContent = 'An unexpected error occurred. Please try again.';
+                formMessage.classList.remove('bg-green-100', 'text-green-700');
+                formMessage.classList.add('bg-red-100', 'text-red-700', 'block');
+                loaderOverlay.classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+</html>

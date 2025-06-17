@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to HC Air Conditioning</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* Tailwind gray-100 */
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+    <div class="bg-white p-8 rounded-xl shadow-2xl max-w-lg w-full text-center border border-gray-200">
+        <h1 class="text-4xl font-extrabold text-gray-900 mb-6">Welcome to HC Air Conditioning</h1>
+        <p class="text-lg text-gray-700 mb-10 leading-relaxed">
+            Please select your visitor type to proceed with registration.
+        </p>
+        <div class="flex flex-col sm:flex-row space-y-6 sm:space-y-0 sm:space-x-6">
+            <a href="/factory" class="flex-1 py-5 px-8 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xl rounded-xl shadow-lg transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-500 focus:ring-opacity-50">
+                Factory Visitor
+                <p class="text-sm font-normal mt-1 opacity-90">Contractors, maintenance, etc.</p>
+            </a>
+            <a href="/office" class="flex-1 py-5 px-8 bg-green-600 hover:bg-green-700 text-white font-bold text-xl rounded-xl shadow-lg transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-green-500 focus:ring-opacity-50">
+                Office Visitor
+                <p class="text-sm font-normal mt-1 opacity-90">Sales, interviews, consultations, etc.</p>
+            </a>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Office Visitor Registration</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            /* Using a vibrant gradient background for glassmorphism */
+            background: linear-gradient(to right bottom, #ea0202, #2750e4, #03cbc7); /* Sky Blue, Light Green, Gold */
+            background-size: 400% 400%;
+            animation: gradientBackground 15s ease infinite;
+        }
+
+        /* Keyframes for the animated background */
+        @keyframes gradientBackground {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Glassmorphism base styles */
+        .glass-card {
+            background-color: rgba(255, 255, 255, 0.15); /* White with transparency */
+            backdrop-filter: blur(10px); /* Frosted glass effect */
+            -webkit-backdrop-filter: blur(10px); /* For Safari support */
+            border: 1px solid rgba(255, 255, 255, 0.3); /* Subtle light border */
+            border-radius: 12px; /* Rounded corners */
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1); /* Soft shadow */
+        }
+
+        pre {
+            white-space: pre-wrap; /* Ensures text wraps */
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+    <div id="nda-section" class="p-6 glass-card max-w-2xl mx-auto my-8 border border-gray-200">
+        <h2 class="text-2xl font-bold mb-4 text-white">Office Visitor NDA</h2>
+        <div class="prose max-w-none text-white leading-relaxed mb-6 overflow-y-auto h-72 p-4 border border-white/20 rounded-md bg-white/10">
+            <pre class="whitespace-pre-wrap font-sans text-sm">{{ nda_content }}</pre>
+        </div>
+        <label class="flex items-center space-x-3 text-lg font-medium text-white">
+            <input type="checkbox" id="ndaAccepted" class="form-checkbox h-5 w-5 text-blue-400 rounded-md accent-blue-400">
+            <span>I have read, understood, and agree to the NDA.</span>
+        </label>
+        <button id="acceptNdaButton" class="mt-6 w-full py-3 px-6 rounded-lg text-white font-semibold transition duration-300 ease-in-out bg-gray-600/40 cursor-not-allowed border border-white/20" disabled>
+            Accept NDA
+        </button>
+    </div>
+
+    <div id="registration-form-section" class="hidden p-6 glass-card max-w-2xl mx-auto my-8 border border-gray-200">
+        <h2 class="text-2xl font-bold mb-4 text-white">Office Visitor Registration</h2>
+        <p class="text-gray-200 mb-6">Please complete your information for office access</p>
+
+        <div id="formMessage" class="p-3 mb-4 rounded-md text-center font-medium hidden text-white bg-red-500/30 backdrop-blur-sm border border-red-500/50"></div>
+
+        <form id="officeRegistrationForm" action="/submit_office_visit" method="POST" enctype="multipart/form-data" class="space-y-4">
+            <div>
+                <label for="firstName" class="block text-sm font-medium text-white">First Name</label>
+                <input type="text" id="firstName" name="firstName" placeholder="Enter your first name" class="mt-1 block w-full px-4 py-2 border border-white/20 rounded-md shadow-sm bg-white/10 text-white placeholder-gray-300 focus:ring-blue-400 focus:border-blue-400 sm:text-sm" required>
+            </div>
+            <div>
+                <label for="lastName" class="block text-sm font-medium text-white">Last Name</label>
+                <input type="text" id="lastName" name="lastName" placeholder="Enter your last name" class="mt-1 block w-full px-4 py-2 border border-white/20 rounded-md shadow-sm bg-white/10 text-white placeholder-gray-300 focus:ring-blue-400 focus:border-blue-400 sm:text-sm" required>
+            </div>
+            <div>
+                <label for="company" class="block text-sm font-medium text-white">Company</label>
+                <input type="text" id="company" name="company" placeholder="Enter your company name" class="mt-1 block w-full px-4 py-2 border border-white/20 rounded-md shadow-sm bg-white/10 text-white placeholder-gray-300 focus:ring-blue-400 focus:border-blue-400 sm:text-sm" required>
+            </div>
+            <div>
+                <label for="reasonForVisit" class="block text-sm font-medium text-white">Reason for Visit</label>
+                <textarea id="reasonForVisit" name="reasonForVisit" placeholder="Please describe the purpose of your visit" rows="3" class="mt-1 block w-full px-4 py-2 border border-white/20 rounded-md shadow-sm bg-white/10 text-white placeholder-gray-300 focus:ring-blue-400 focus:border-blue-400 sm:text-sm" required></textarea>
+            </div>
+            <div>
+                <label for="personVisiting" class="block text-sm font-medium text-white">Person Visiting</label>
+                <input type="text" id="personVisiting" name="personVisiting" placeholder="Who are you visiting today?" class="mt-1 block w-full px-4 py-2 border border-white/20 rounded-md shadow-sm bg-white/10 text-white placeholder-gray-300 focus:ring-blue-400 focus:border-blue-400 sm:text-sm" required>
+            </div>
+            <div>
+                <label for="emailAddress" class="block text-sm font-medium text-white">Email Address</label>
+                <input type="email" id="emailAddress" name="emailAddress" placeholder="Enter your email address" class="mt-1 block w-full px-4 py-2 border border-white/20 rounded-md shadow-sm bg-white/10 text-white placeholder-gray-300 focus:ring-blue-400 focus:border-blue-400 sm:text-sm" required>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="flex flex-col items-center">
+                    <label for="selfiePhoto" class="block text-sm font-medium text-white mb-2">Selfie Photo</label>
+                    <div id="selfiePhotoPreviewContainer" class="w-40 h-40 border-2 border-dashed border-white/50 rounded-md flex items-center justify-center cursor-pointer overflow-hidden mb-2 bg-white/10">
+                        <span class="text-gray-300 text-center">Tap to take photo</span>
+                    </div>
+                    <input type="file" id="selfiePhoto" name="selfiePhoto" accept="image/*" capture="camera" class="hidden" required>
+                    <p id="selfieError" class="text-red-300 text-sm mt-1 hidden">Selfie photo is required.</p>
+                </div>
+                <div class="flex flex-col items-center">
+                    <label for="idPicture" class="block text-sm font-medium text-white mb-2">ID Picture</label>
+                    <div id="idPicturePreviewContainer" class="w-40 h-40 border-2 border-dashed border-white/50 rounded-md flex items-center justify-center cursor-pointer overflow-hidden mb-2 bg-white/10">
+                        <span class="text-gray-300 text-center">Tap to take ID photo</span>
+                    </div>
+                    <input type="file" id="idPicture" name="idPicture" accept="image/*" capture="camera" class="hidden" required>
+                    <p id="idPictureError" class="text-red-300 text-sm mt-1 hidden">ID picture is required.</p>
+                </div>
+            </div>
+
+            <div class="flex items-center mt-4">
+                <input type="checkbox" id="needsWifi" name="needsWifi" class="form-checkbox h-5 w-5 text-blue-400 rounded-md accent-blue-400">
+                <label for="needsWifi" class="ml-2 block text-sm font-medium text-white">
+                    Does the visitor need Wi-Fi access?
+                </label>
+            </div>
+
+            <div id="wifiDetailsSection" class="mt-6 hidden">
+                <div class="glass-card p-6 rounded-lg text-white">
+                    <h3 class="text-xl font-bold mb-4">Guest Wi-Fi Access</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                        <div>
+                            <p class="mb-2"><strong class="font-semibold">Network Name (SSID):</strong> <span class="font-mono bg-white/20 p-1 rounded">HC Guest</span></p>
+                            <p class="mb-2"><strong class="font-semibold">Password:</strong> <span class="font-mono bg-white/20 p-1 rounded">Welcome2HC</span></p>
+                            <p class="mb-4"><strong class="font-semibold">Voucher Code:</strong> <span class="font-mono bg-white/20 p-1 rounded">78909-13788</span></p>
+                            <button type="button" id="copyWifiDetails" class="w-full py-2 px-4 bg-blue-500/70 hover:bg-blue-600/70 text-white font-semibold rounded-lg transition duration-300 ease-in-out shadow-md focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75 border border-white/20">
+                                Copy All WiFi Details
+                            </button>
+                        </div>
+                        <div class="flex flex-col items-center justify-center">
+                            <p class="font-semibold mb-2">Scan to Connect</p>
+                            <div class="w-40 h-40 bg-white/20 p-2 rounded-md shadow-inner flex items-center justify-center">
+                                <img src="" id="wifiQrCodeImg" alt="Wi-Fi QR Code" class="w-36 h-36 object-cover">
+                            </div>
+                            <p class="text-sm text-gray-300 mt-2 text-center">Wi-Fi QR Code</p>
+                            <p class="text-xs text-gray-400 text-center mt-1">Scan with your device's camera to automatically connect to Wi-Fi</p>
+                        </div>
+                    </div>
+                    <div class="mt-6 border-t border-white/20 pt-4">
+                        <p class="font-semibold mb-2">Instructions:</p>
+                        <ol class="list-decimal list-inside text-sm text-gray-200 space-y-1">
+                            <li>Connect to "HC Guest" network</li>
+                            <li>Enter the voucher code when prompted</li>
+                            <li>Or scan the QR code for automatic setup</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="w-full py-3 px-6 bg-blue-500/70 hover:bg-blue-600/70 text-white font-semibold rounded-lg shadow-md transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75 border border-white/20">
+                Register Office Visit
+            </button>
+        </form>
+    </div>
+
+    <div id="loaderOverlay" class="fixed inset-0 bg-white/30 backdrop-blur-sm flex items-center justify-center z-50 hidden">
+        <div class="flex flex-col items-center glass-card p-6">
+            <svg class="animate-spin h-12 w-12 text-blue-400 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+            </svg>
+            <p class="text-blue-200 font-medium">Registering... Please wait</p>
+        </div>
+    </div>
+
+    <script>
+        const ndaAcceptedCheckbox = document.getElementById('ndaAccepted');
+        const acceptNdaButton = document.getElementById('acceptNdaButton');
+        const ndaSection = document.getElementById('nda-section');
+        const registrationFormSection = document.getElementById('registration-form-section');
+        const officeRegistrationForm = document.getElementById('officeRegistrationForm');
+        const selfiePhotoInput = document.getElementById('selfiePhoto');
+        const selfiePhotoPreviewContainer = document.getElementById('selfiePhotoPreviewContainer');
+        const idPictureInput = document.getElementById('idPicture');
+        const idPicturePreviewContainer = document.getElementById('idPicturePreviewContainer');
+        const needsWifiCheckbox = document.getElementById('needsWifi');
+        const wifiDetailsSection = document.getElementById('wifiDetailsSection');
+        const copyWifiDetailsButton = document.getElementById('copyWifiDetails');
+        const wifiQrCodeImg = document.getElementById('wifiQrCodeImg');
+        const formMessage = document.getElementById('formMessage');
+        const selfieError = document.getElementById('selfieError');
+        const idPictureError = document.getElementById('idPictureError');
+        const loaderOverlay = document.getElementById('loaderOverlay');
+
+
+        // --- NDA Logic ---
+        ndaAcceptedCheckbox.addEventListener('change', () => {
+            acceptNdaButton.disabled = !ndaAcceptedCheckbox.checked;
+            if (ndaAcceptedCheckbox.checked) {
+                acceptNdaButton.classList.remove('bg-gray-600/40', 'cursor-not-allowed');
+                acceptNdaButton.classList.add('bg-blue-500/70', 'hover:bg-blue-600/70');
+            } else {
+                acceptNdaButton.classList.add('bg-gray-600/40', 'cursor-not-allowed');
+                acceptNdaButton.classList.remove('bg-blue-500/70', 'hover:bg-blue-600/70');
+            }
+        });
+
+        acceptNdaButton.addEventListener('click', () => {
+            if (ndaAcceptedCheckbox.checked) {
+                ndaSection.classList.add('hidden');
+                registrationFormSection.classList.remove('hidden');
+            }
+        });
+
+        // --- Photo Previews Logic ---
+        function setupPhotoPreview(inputElement, previewContainer, errorElement) {
+            inputElement.addEventListener('change', (event) => {
+                if (event.target.files && event.target.files[0]) {
+                    const file = event.target.files[0];
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        previewContainer.innerHTML = `<img src="${e.target.result}" alt="Photo Preview" class="w-full h-full object-cover rounded-md">`;
+                        errorElement.classList.add('hidden');
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    previewContainer.innerHTML = `<span class="text-gray-300 text-center">Tap to take photo</span>`;
+                }
+            });
+            previewContainer.addEventListener('click', () => {
+                inputElement.click();
+            });
+        }
+
+        setupPhotoPreview(selfiePhotoInput, selfiePhotoPreviewContainer, selfieError);
+        setupPhotoPreview(idPictureInput, idPicturePreviewContainer, idPictureError);
+
+
+        // --- Wi-Fi Details Logic ---
+        const wifiSSID = "HC Guest";
+        const wifiPassword = "Welcome2HC";
+        const voucherCode = "78909-13788";
+
+        // Placeholder for QR code generation - in a real app, you'd use a library or backend
+        function generateWifiQRCodeSVG(ssid, password) {
+            const wifiData = `WIFI:S:${ssid};T:WPA;P:${password};;`;
+            // In a real application, you'd use a library like qrcode.js to generate an actual QR code here.
+            // For this example, we're just using a placeholder image.
+            const size = 150;
+            const svgContent = `
+                <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="0" y="0" width="${size}" height="${size}" fill="#fff"/>
+                    <rect x="20" y="20" width="30" height="30" fill="#000"/>
+                    <rect x="${size - 50}" y="20" width="30" height="30" fill="#000"/>
+                    <rect x="20" y="${size - 50}" width="30" height="30" fill="#000"/>
+                    <rect x="70" y="70" width="10" height="10" fill="#000"/>
+                    <path d="M${size/2} ${size/2} L${size/2+20} ${size/2} L${size/2+20} ${size/2+20} L${size/2} ${size/2+20} Z" fill="#ccc"/>
+                </svg>
+            `;
+            return `data:image/svg+xml;base64,${btoa(svgContent)}`;
+        }
+
+
+        needsWifiCheckbox.addEventListener('change', () => {
+            if (needsWifiCheckbox.checked) {
+                wifiDetailsSection.classList.remove('hidden');
+                // Assume '/static/QR.png' exists for the actual QR code
+                wifiQrCodeImg.src = '/static/QR.png';
+            } else {
+                wifiDetailsSection.classList.add('hidden');
+                wifiQrCodeImg.src = '';
+            }
+          });
+
+
+        copyWifiDetailsButton.addEventListener('click', () => {
+            const details = `Network Name (SSID): ${wifiSSID}\nPassword: ${wifiPassword}\nVoucher Code: ${voucherCode}`;
+            const textArea = document.createElement('textarea');
+            textArea.value = details;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                // Replace with custom modal later
+                alert('Wi-Fi details copied to clipboard!');
+            } catch (err) {
+                console.error('Failed to copy text: ', err);
+                // Replace with custom modal later
+                alert('Failed to copy Wi-Fi details.');
+            }
+            document.body.removeChild(textArea);
+        });
+
+        // --- Form Submission Logic ---
+        officeRegistrationForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            formMessage.classList.add('hidden');
+            selfieError.classList.add('hidden');
+            idPictureError.classList.add('hidden');
+
+            if (!selfiePhotoInput.files.length) {
+                selfieError.classList.remove('hidden');
+                formMessage.textContent = 'Please provide a selfie photo.';
+                formMessage.classList.remove('bg-green-100', 'text-green-700');
+                formMessage.classList.add('bg-red-500/30', 'text-red-300', 'block');
+                return;
+            }
+            if (!idPictureInput.files.length) {
+                idPictureError.classList.remove('hidden');
+                formMessage.textContent = 'Please provide an ID picture.';
+                formMessage.classList.remove('bg-green-100', 'text-green-700');
+                formMessage.classList.add('bg-red-500/30', 'text-red-300', 'block');
+                return;
+            }
+
+            const formData = new FormData(officeRegistrationForm);
+            loaderOverlay.classList.remove('hidden'); // Show loader
+
+            try {
+                const response = await fetch('/submit_office_visit', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                loaderOverlay.classList.add('hidden'); // Hide loader
+
+                if (result.success) {
+                    formMessage.textContent = 'Registration successful! Redirecting...';
+                    formMessage.classList.remove('bg-red-500/30', 'text-red-300');
+                    formMessage.classList.add('bg-green-500/30', 'text-green-300', 'block');
+                    setTimeout(() => {
+                        window.location.href = result.redirect_url;
+                    }, 1500);
+                } else {
+                    formMessage.textContent = `Error: ${result.message}`;
+                    formMessage.classList.remove('bg-green-500/30', 'text-green-300');
+                    formMessage.classList.add('bg-red-500/30', 'text-red-300', 'block');
+                }
+            } catch (error) {
+                loaderOverlay.classList.add('hidden'); // Hide loader
+                formMessage.textContent = 'An unexpected error occurred. Please try again.';
+                formMessage.classList.remove('bg-green-500/30', 'text-green-300');
+                formMessage.classList.add('bg-red-500/30', 'text-red-300', 'block');
+            }
+        });
+
+    </script>
+</body>
+</html>

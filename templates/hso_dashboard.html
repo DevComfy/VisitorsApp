@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>H&S Officer Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* Base font-family from Inter */
+        body { font-family: 'Inter', sans-serif; }
+
+        /* Custom styles for status badges (more vibrant, subtle background) */
+        .status-approved {
+            background-color: rgba(34, 197, 94, 0.1); /* green-500 with 10% opacity */
+            color: #16a34a; /* green-600 */
+        }
+        .status-declined {
+            background-color: rgba(239, 68, 68, 0.1); /* red-500 with 10% opacity */
+            color: #dc2626; /* red-600 */
+        }
+        .status-pending {
+            background-color: rgba(234, 179, 8, 0.1); /* yellow-500 with 10% opacity */
+            color: #ca8a04; /* yellow-600 */
+        }
+
+        /* Adjust input file button styling for consistency */
+        input[type="file"]::file-selector-button {
+            background-color: theme('colors.blue.50'); /* Light blue background */
+            color: theme('colors.blue.700'); /* Darker blue text */
+            padding: theme('spacing.2') theme('spacing.4'); /* py-2 px-4 */
+            border-radius: theme('borderRadius.full'); /* rounded-full */
+            border: 0; /* no border */
+            font-size: theme('fontSize.sm'); /* text-sm */
+            font-weight: theme('fontWeight.semibold'); /* font-semibold */
+            margin-right: theme('spacing.4'); /* mr-4 */
+            transition: background-color 150ms ease-in-out; /* hover transition */
+            cursor: pointer;
+        }
+
+        input[type="file"]::file-selector-button:hover {
+            background-color: theme('colors.blue.100'); /* Lighter blue on hover */
+        }
+
+        /* Grid layout for main content area */
+        .grid-container {
+            display: grid;
+            grid-template-columns: 1fr; /* Default to single column */
+            gap: 1.5rem; /* Gap between sections */
+        }
+        @media (min-width: 1024px) { /* On large screens, use two columns */
+            .grid-container {
+                grid-template-columns: 1fr 2fr; /* List on left, detail on right */
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen text-gray-800">
+
+    {% if login_page %}
+    <div class="flex items-center justify-center min-h-screen">
+        <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md border border-gray-100">
+            <h2 class="text-3xl font-bold mb-7 text-center text-gray-900">H&S Officer Login</h2>
+            {% if login_error %}
+            <p class="bg-red-100 text-red-700 p-3 rounded-lg mb-5 text-center text-sm">{{ login_error }}</p>
+            {% endif %}
+            <form action="{{ url_for('hso_login') }}" method="POST" class="space-y-5">
+                <div>
+                    <label for="username" class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                    <input type="text" id="username" name="username" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-base" required>
+                </div>
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                    <input type="password" id="password" name="password" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-base" required>
+                </div>
+                <button type="submit" class="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md transition duration-200 ease-in-out transform hover:scale-105">
+                    Login
+                </button>
+            </form>
+        </div>
+    </div>
+    {% else %}
+    <nav class="bg-gradient-to-r from-blue-700 to-blue-800 text-white p-4 shadow-lg flex justify-between items-center sticky top-0 z-10">
+        <h1 class="text-2xl font-bold">H&S Dashboard</h1>
+        <div class="flex items-center">
+            <span class="mr-4 text-sm opacity-90">Welcome, <span class="font-semibold">{{ session.get('hso_username') }}</span> ({{ session.get('hso_user_role') }})</span>
+            <a href="{{ url_for('hso_logout') }}" class="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg text-sm font-semibold shadow-md transition duration-200 ease-in-out">Logout</a>
+        </div>
+    </nav>
+
+    <div class="container mx-auto p-6 lg:p-8">
+        <h2 class="text-4xl font-extrabold text-gray-900 mb-10 text-center">Contractor Document Management</h2>
+
+        <div id="message" class="p-4 mb-6 rounded-lg text-center font-medium shadow-md hidden"></div>
+
+        <!-- Document Upload Section -->
+        <div class="bg-white p-7 rounded-xl shadow-xl mb-10 border border-gray-100">
+            <h3 class="text-2xl font-bold mb-5 text-gray-800">Upload New Contractor Documents for Pre-Approval</h3>
+            <form id="uploadForm" class="space-y-5" enctype="multipart/form-data">
+                <div>
+                    <label for="company_name" class="block text-sm font-medium text-gray-700 mb-1">Contractor Company Name</label>
+                    <input type="text" id="company_name" name="company_name" class="block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-base" required>
+                </div>
+                <div>
+                    <label for="contractor_contact_name" class="block text-sm font-medium text-gray-700 mb-1">Contractor Contact Person</label>
+                    <input type="text" id="contractor_contact_name" name="contractor_contact_name" class="block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-base" required>
+                </div>
+                <div>
+                    <label for="contractor_email" class="block text-sm font-medium text-gray-700 mb-1">Contractor Email for Notifications</label>
+                    <input type="email" id="contractor_email" name="contractor_email" class="block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-base" required>
+                </div>
+                <div>
+                    <label for="project_reason_for_visit" class="block text-sm font-medium text-gray-700 mb-1">Project/Reason for Visit</label>
+                    <textarea id="project_reason_for_visit" name="project_reason_for_visit" rows="3" class="block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-base" required></textarea>
+                </div>
+                <div>
+                    <label for="expected_arrival_date" class="block text-sm font-medium text-gray-700 mb-1">Expected Arrival Date</label>
+                    <input type="date" id="expected_arrival_date" name="expected_arrival_date" class="block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-base" required>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <!-- Specific Document Upload Fields -->
+                    <div>
+                        <label for="coid_letter" class="block text-sm font-medium text-gray-700 mb-1">Letter of Good Standing (COID)</label>
+                        <input type="file" id="coid_letter" name="coid_letter" class="block w-full text-base text-gray-600 border border-gray-300 rounded-lg py-2 px-3 focus:ring-blue-500 focus:border-blue-500" accept=".pdf,.png,.jpg,.jpeg">
+                    </div>
+                    <div>
+                        <label for="risk_assessments" class="block text-sm font-medium text-gray-700 mb-1">Risk Assessments</label>
+                        <input type="file" id="risk_assessments" name="risk_assessments" multiple class="block w-full text-base text-gray-600 border border-gray-300 rounded-lg py-2 px-3 focus:ring-blue-500 focus:border-blue-500" accept=".pdf,.doc,.docx,.xlsx,.xls">
+                    </div>
+                    <div>
+                        <label for="worker_certificates" class="block text-sm font-medium text-gray-700 mb-1">Worker Certificates</label>
+                        <input type="file" id="worker_certificates" name="worker_certificates" multiple class="block w-full text-base text-gray-600 border border-gray-300 rounded-lg py-2 px-3 focus:ring-blue-500 focus:border-blue-500" accept=".pdf,.png,.jpg,.jpeg">
+                    </div>
+                    <div>
+                        <label for="material_safety_data_sheets" class="block text-sm font-medium text-gray-700 mb-1">Material Safety Data Sheets (MSDS)</label>
+                        <input type="file" id="material_safety_data_sheets" name="material_safety_data_sheets" multiple class="block w-full text-base text-gray-600 border border-gray-300 rounded-lg py-2 px-3 focus:ring-blue-500 focus:border-blue-500" accept=".pdf,.doc,.docx">
+                    </div>
+                    <div>
+                        <label for="ppe_records" class="block text-sm font-medium text-gray-700 mb-1">Personal Protective Equipment (PPE) Records</label>
+                        <input type="file" id="ppe_records" name="ppe_records" multiple class="block w-full text-base text-gray-600 border border-gray-300 rounded-lg py-2 px-3 focus:ring-blue-500 focus:border-blue-500" accept=".pdf,.doc,.docx">
+                    </div>
+                    <div>
+                        <label for="medical_certificates" class="block text-sm font-medium text-gray-700 mb-1">Medical Certificates</label>
+                        <input type="file" id="medical_certificates" name="medical_certificates" multiple class="block w-full text-base text-gray-600 border border-gray-300 rounded-lg py-2 px-3 focus:ring-blue-500 focus:border-blue-500" accept=".pdf,.png,.jpg,.jpeg">
+                    </div>
+                    <div>
+                        <label for="standard_operating_procedures" class="block text-sm font-medium text-gray-700 mb-1">Standard Operating Procedures (SOPs)</label>
+                        <input type="file" id="standard_operating_procedures" name="standard_operating_procedures" multiple class="block w-full text-base text-gray-600 border border-gray-300 rounded-lg py-2 px-3 focus:ring-blue-500 focus:border-blue-500" accept=".pdf,.doc,.docx">
+                    </div>
+                    <div>
+                        <label for="id_copies" class="block text-sm font-medium text-gray-700 mb-1">ID Copies</label>
+                        <input type="file" id="id_copies" name="id_copies" multiple class="block w-full text-base text-gray-600 border border-gray-300 rounded-lg py-2 px-3 focus:ring-blue-500 focus:border-blue-500" accept=".pdf,.png,.jpg,.jpeg">
+                    </div>
+                    <div>
+                        <label for="legal_appointments" class="block text-sm font-medium text-gray-700 mb-1">Legal Appointments</label>
+                        <input type="file" id="legal_appointments" name="legal_appointments" multiple class="block w-full text-base text-gray-600 border border-gray-300 rounded-lg py-2 px-3 focus:ring-blue-500 focus:border-blue-500" accept=".pdf,.doc,.docx">
+                    </div>
+                    <div>
+                        <label for="miscellaneous_docs" class="block text-sm font-medium text-gray-700 mb-1">Other / Miscellaneous Documents</label>
+                        <input type="file" id="miscellaneous_docs" name="miscellaneous_docs" multiple class="block w-full text-base text-gray-600 border border-gray-300 rounded-lg py-2 px-3 focus:ring-blue-500 focus:border-blue-500" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.xlsx,.xls">
+                    </div>
+                </div>
+
+                <button type="submit" class="w-full py-3 px-6 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md transition duration-200 ease-in-out transform hover:scale-105" id="uploadBtn">
+                    Upload Documents for Review
+                </button>
+            </form>
+        </div>
+
+        <div class="grid-container">
+            <!-- Submission List Section -->
+            <div class="bg-white p-7 rounded-xl shadow-xl border border-gray-100">
+                <h3 class="text-2xl font-bold mb-5 text-gray-900">Contractor Submissions</h3>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Company</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Contact</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Arrival Date</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-100">
+                            {% for submission in submissions %}
+                            <tr class="hover:bg-gray-50 transition duration-150 ease-in-out">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ submission.company_name }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ submission.contractor_contact_name }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ submission.expected_arrival_date }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                    {% if submission.submission_status == 'Approved' %}
+                                        <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full status-approved">Approved</span>
+                                    {% elif submission.submission_status == 'Declined' %}
+                                        <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full status-declined">Declined</span>
+                                    {% else %}
+                                        <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full status-pending">Pending Review</span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                                    {# IMPORTANT FIX: Use submission.id which contains the Firestore document ID #}
+                                    {% if submission_detail and submission_detail.id == submission.id %}
+                                        <button class="text-blue-600 hover:text-blue-800 transition duration-150 ease-in-out font-semibold" onclick="hideDetail()">Hide Details</button>
+                                    {% else %}
+                                        <button class="text-blue-600 hover:text-blue-800 transition duration-150 ease-in-out font-semibold" onclick="viewSubmission('{{ submission.id }}')">View Details</button>
+                                    {% endif %}
+
+                                    {% if submission.submission_status != 'Approved' %}
+                                        <button class="text-green-600 hover:text-green-800 transition duration-150 ease-in-out font-semibold" onclick="updateStatus('{{ submission.id }}', 'Approved')">Approve</button>
+                                    {% endif %}
+                                    {% if submission.submission_status != 'Declined' %}
+                                        <button class="text-red-600 hover:text-red-800 transition duration-150 ease-in-out font-semibold" onclick="showDeclineModal('{{ submission.id }}')">Decline</button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Submission Detail Section (Conditionally rendered) -->
+            <div id="submissionDetailContainer" class="bg-white p-7 rounded-xl shadow-xl border border-gray-100 {% if not submission_detail %}hidden{% endif %}">
+                {% if submission_detail %}
+                <h4 class="text-xl font-bold mb-4 text-blue-800">Details for {{ submission_detail.company_name }}</h4>
+                <p class="mb-1 text-gray-700"><strong>Contact Person:</strong> {{ submission_detail.contractor_contact_name }}</p>
+                <p class="mb-1 text-gray-700"><strong>Email:</strong> {{ submission_detail.contractor_email }}</p>
+                <p class="mb-1 text-gray-700"><strong>Project/Reason:</strong> {{ submission_detail.project_reason_for_visit }}</p>
+                <p class="mb-1 text-gray-700"><strong>Expected Arrival:</strong> {{ submission_detail.expected_arrival_date }}</p>
+                <p class="mb-4 text-gray-700"><strong>Current Status:</strong> <span class="font-bold text-lg">
+                    {% if submission_detail.submission_status == 'Approved' %}
+                        <span class="status-approved rounded-md px-2 py-0.5 text-base">{{ submission_detail.submission_status }}</span>
+                    {% elif submission_detail.submission_status == 'Declined' %}
+                        <span class="status-declined rounded-md px-2 py-0.5 text-base">{{ submission_detail.submission_status }}</span>
+                    {% else %}
+                        <span class="status-pending rounded-md px-2 py-0.5 text-base">{{ submission_detail.submission_status }}</span>
+                    {% endif %}
+                </span></p>
+                <p class="text-gray-700"><strong>Pre-Approval Code:</strong> <span class="font-bold text-blue-700 break-words">{{ submission_detail.unique_pre_approval_code }}</span></p>
+                {% if submission_detail.approval_decline_reason %}
+                    <p class="mt-2 text-red-700"><strong>Reason for Decline:</strong> {{ submission_detail.approval_decline_reason }}</p>
+                {% endif %}
+
+                <h5 class="font-bold text-lg mt-6 mb-3 text-gray-800">Uploaded Documents:</h5>
+                <ul class="list-disc list-inside space-y-2 text-gray-700">
+                    {% for doc in documents %}
+                        <li>
+                            <a href="{{ doc.file_url }}" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline transition duration-150 ease-in-out font-medium">
+                                {{ doc.original_file_name }} (<span class="font-semibold">{{ doc.document_type }}</span>)
+                            </a>
+                        </li>
+                    {% else %}
+                        <li class="text-gray-500">No documents found for this submission.</li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                    <p class="text-gray-600 text-center py-10">Select a submission from the list to view details here.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Decline Reason Modal -->
+    <div id="declineModal" class="fixed inset-0 bg-gray-900 bg-opacity-60 flex items-center justify-center hidden z-50 p-4">
+        <div class="bg-white p-7 rounded-xl shadow-2xl w-full max-w-sm border border-gray-100 transform scale-100 transition-transform duration-300 ease-out">
+            <h3 class="text-xl font-bold mb-4 text-gray-900">Decline Reason</h3>
+            <textarea id="declineReason" rows="4" class="w-full p-3 border border-gray-300 rounded-lg mb-5 focus:ring-red-500 focus:border-red-500 text-base resize-y" placeholder="Enter a clear reason for declining (e.g., 'COID expired', 'Missing Risk Assessment', 'Incorrect document format')..." required></textarea>
+            <div class="flex justify-end space-x-3">
+                <button class="px-5 py-2.5 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 transition duration-200 ease-in-out" onclick="hideDeclineModal()">Cancel</button>
+                <button class="px-5 py-2.5 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition duration-200 ease-in-out" id="confirmDeclineBtn">Decline Submission</button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        const messageDiv = document.getElementById('message');
+        const uploadForm = document.getElementById('uploadForm');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const declineModal = document.getElementById('declineModal');
+        const declineReasonInput = document.getElementById('declineReason');
+        const confirmDeclineBtn = document.getElementById('confirmDeclineBtn');
+        let currentSubmissionIdForDecline = null;
+
+        // Function to show transient messages
+        function showMessage(msg, type) {
+            messageDiv.textContent = msg;
+            messageDiv.className = `p-4 mb-6 rounded-lg text-center font-medium shadow-md block`;
+            if (type === 'success') {
+                messageDiv.classList.add('bg-green-100', 'text-green-700');
+                messageDiv.classList.remove('bg-red-100', 'text-red-700', 'bg-blue-100', 'text-blue-700');
+            } else if (type === 'error') {
+                messageDiv.classList.add('bg-red-100', 'text-red-700');
+                messageDiv.classList.remove('bg-green-100', 'text-green-700', 'bg-blue-100', 'text-blue-700');
+            } else { // info/default
+                messageDiv.classList.add('bg-blue-100', 'text-blue-700');
+                messageDiv.classList.remove('bg-green-100', 'text-green-700', 'bg-red-100', 'text-red-700');
+            }
+            setTimeout(() => {
+                messageDiv.classList.add('hidden');
+            }, 5000); // Message disappears after 5 seconds
+        }
+
+        // Handle document upload form submission
+        uploadForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            uploadBtn.disabled = true;
+            uploadBtn.textContent = 'Uploading...';
+            messageDiv.classList.add('hidden');
+
+            const formData = new FormData(uploadForm);
+
+            try {
+                const response = await fetch('/hso/upload_docs', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage(result.message, 'success');
+                    uploadForm.reset(); // Clear the form
+                    // Reload the page to update the list of submissions
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    showMessage(result.message, 'error');
+                }
+            } catch (error) {
+                console.error('Upload error:', error);
+                showMessage('An error occurred during upload. Please try again.', 'error');
+            } finally {
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = 'Upload Documents for Review';
+            }
+        });
+
+        // Function to update submission status (Approve/Decline)
+        async function updateStatus(submissionId, status, reason = null) {
+            messageDiv.classList.add('hidden');
+            const confirmAction = status === 'Approved'
+                ? 'Are you sure you want to APPROVE this submission? An email will be sent to the contractor with their Pre-Approval ID.'
+                : 'Are you sure you want to DECLINE this submission? An email will be sent to the contractor with your reason.';
+
+            if (status === 'Declined' && !reason) {
+                showDeclineModal(submissionId);
+                return;
+            }
+
+            // Using browser's confirm for "Approve" for simplicity.
+            // You can replace this with a custom modal if you prefer consistent UI/UX.
+            if (status === 'Approved' && !confirm(confirmAction)) {
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('status', status);
+            if (reason) {
+                formData.append('reason', reason);
+            }
+
+            try {
+                const response = await fetch(`/hso/pre-approvals/${submissionId}/update_status`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const contentType = response.headers.get("content-type");
+                if (contentType && contentType.indexOf("application/json") !== -1) {
+                    const result = await response.json();
+                    if (result.success) {
+                        showMessage(result.message, 'success');
+                        setTimeout(() => window.location.reload(), 1000);
+                    } else {
+                        showMessage(result.message, 'error');
+                    }
+                } else {
+                    const errorText = await response.text();
+                    console.error('Server returned non-JSON response:', errorText);
+                    showMessage('Received an unexpected response from the server. Check console for details.', 'error');
+                }
+            } catch (error) {
+                console.error('Status update error:', error);
+                showMessage('An error occurred updating status. Please try again.', 'error');
+            }
+        }
+
+        // Functions to manage the decline modal
+        function showDeclineModal(submissionId) {
+            currentSubmissionIdForDecline = submissionId;
+            declineReasonInput.value = '';
+            declineModal.classList.remove('hidden');
+            // Add a small animation for the modal
+            declineModal.querySelector('div').classList.add('scale-100');
+            declineReasonInput.focus(); // Focus on the textarea
+        }
+
+        function hideDeclineModal() {
+            declineModal.querySelector('div').classList.remove('scale-100');
+            declineModal.classList.add('hidden');
+            currentSubmissionIdForDecline = null;
+            declineReasonInput.style.borderColor = ''; // Reset border
+            declineReasonInput.placeholder = 'Enter a clear reason for declining (e.g., \'COID expired\', \'Missing Risk Assessment\', \'Incorrect document format\')...'; // Reset placeholder
+        }
+
+        // Event listener for the "Confirm Decline" button in the modal
+        confirmDeclineBtn.addEventListener('click', () => {
+            if (currentSubmissionIdForDecline) {
+                const reason = declineReasonInput.value.trim();
+                if (reason === '') {
+                    declineReasonInput.style.borderColor = 'rgb(239 68 68)'; /* Tailwind red-500 */
+                    declineReasonInput.placeholder = 'Reason is required!';
+                    return;
+                }
+                updateStatus(currentSubmissionIdForDecline, 'Declined', reason);
+                hideDeclineModal();
+            }
+        });
+
+        // Functions to navigate submission details
+        function viewSubmission(id) {
+            window.location.href = `/hso/pre-approvals/${id}`;
+        }
+
+        function hideDetail() {
+            window.location.href = `/hso/dashboard`;
+        }
+
+    </script>
+    {% endif %}
+</body>
+</html>
